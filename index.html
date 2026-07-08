@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>View Transition Edge-to-Edge Repro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    background: white;
+  }
+
+  body {
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    /* Ensure body extends into safe areas on notched devices */
+    min-height: -webkit-fill-available;
+  }
+
+  .page {
+    padding: 24px;
+    padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 250vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Card (shared element) ── */
+  .card {
+    background: #f0f0f0;
+    border-radius: 20px;
+    padding: 24px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    view-transition-name: card;
+    contain: layout style;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Safari-friendly: paint containment for VT */
+  ::view-transition-old(card),
+  ::view-transition-new(card) {
+    animation-duration: 0.35s;
+    animation-timing-function: ease-out;
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #111;
+  }
+
+  .card-body {
+    font-size: 16px;
+    line-height: 1.65;
+    color: #333;
+  }
+
+  .card-body p + p {
+    margin-top: 12px;
+  }
+
+  /* Truncation state */
+  .card-content {
+    overflow: hidden;
+    transition: max-height 0.35s ease-out;
+  }
+
+  .card-content.collapsed {
+    max-height: 80px;
+    /* Soft fade at the bottom to hint truncation */
+    -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+    mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+  }
+
+  .card-content.expanded {
+    max-height: 2000px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .tap-hint {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #888;
+    font-style: italic;
+  }
+
+  .card.expanded-card .tap-hint {
+    display: none;
+  }
+
+  /* ── Placeholder sections ── */
+  .placeholder {
+    margin-top: 32px;
+    flex: 1;
+  }
+
+  .placeholder-section {
+    margin-bottom: 36px;
+  }
+
+  .placeholder-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222;
+    margin-bottom: 8px;
+  }
+
+  .placeholder-section p {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- Shared-element card -->
+  <div class="card" id="card">
+    <div class="card-title">View Transition Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p>This card acts as a <strong>shared element</strong> during a View Transition. It starts truncated to ~two lines. Tap anywhere on the page to trigger a crossfade + morph transition that expands the card to reveal the full content.</p>
+        <p>The View Transitions API captures a snapshot of this card before the DOM update, then crossfades between the old snapshot and the new live state. Because the card has <code>view-transition-name: card</code> set, the browser treats it as a shared element and attempts to morph between the two states — animating position, size, and shape differences.</p>
+        <p>This is a minimal reproduction for testing Safari on edge-to-edge displays (iPhone with Dynamic Island / notch). The page uses <code>viewport-fit=cover</code> and extends content into the safe areas to surface any color or rendering glitches during the transition animation.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur auctor metus nec odio tincidunt, vel fermentum lorem bibendum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Tap anywhere to expand</div>
+  </div>
+
+  <!-- Scroll fodder — multiple viewports of placeholder content -->
+  <div class="placeholder">
+    <div class="placeholder-section">
+      <h2>Section One — Setup</h2>
+      <p>This content exists to force the page well beyond a single viewport, ensuring the browser has scrollable content. On a typical phone display (≈800px tall), this page spans roughly 2.5 viewports.</p>
+      <p>The white background should remain solid through the entire view transition — no flickers, no black flashes, no bleed from underlying layers.</p>
+    </div>
+
+    <div class="placeholder-section">
+      <h2>Section Two — Safari View Transitions</h2>
+      <p>Safari shipped support for the View Transitions API (same-document) starting in Safari 18.2. Shared element transitions using <code>view-transition-name</code> should smoothly animate the card between collapsed and expanded states.</p>
+      <p>On notched iPhones with edge-to-edge displays, the view transition overlay layer may not respect the page background color behind the status bar area, resulting in a visible flash of a different color (often black or the system background).</p>
+    </div>
+
+    <div class="placeholder-section">
+      <h2>Section Three — Expected vs. Actual</h2>
+      <p><strong>Expected:</strong> Tapping anywhere on the page triggers a smooth view transition. The white page background remains white throughout. The card expands in place with a crossfade/morph animation. No color flashes appear in the safe area regions.</p>
+      <p><strong>Actual (bug):</strong> During the transition, the area behind the notch / Dynamic Island briefly renders in black or dark gray instead of white, creating a jarring flash. This is the edge-to-edge VT color issue this repro targets.</p>
+    </div>
+
+    <div class="placeholder-section">
+      <h2>Section Four — Environment</h2>
+      <p>Test on Safari (iOS 18.2+ or latest) on a device with a notch or Dynamic Island — iPhone 14 Pro or later is ideal. The effect is most visible in light mode with a white page background.</p>
+      <p>Tap the card or anywhere on the page to trigger. Tap again to collapse. Repeat and observe the safe area region above the card during the transition animation.</p>
+    </div>
+
+    <div class="placeholder-section">
+      <h2>Section Five — Footer Padding</h2>
+      <p>Extra content to push the page past 2.5 viewports. The scroll position should not jump during the transition.</p>
+      <p>Donec euismod, nisi vel consectetur interdum, nisl nunc egestas nunc, vitae tincidunt nisl nunc euismod nunc. Sed euismod, nisi vel consectetur interdum, nisl nunc egestas nunc, vitae tincidunt nisl nunc euismod nunc.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+
+  function toggleCard() {
+    // Use native View Transitions API if available
+    if (document.startViewTransition) {
+      document.startViewTransition(() => updateCardState());
+    } else {
+      // Fallback for browsers without VT support
+      updateCardState();
+    }
+  }
+
+  function updateCardState() {
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      cardContent.classList.remove('collapsed');
+      cardContent.classList.add('expanded');
+      card.classList.add('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to collapse';
+    } else {
+      cardContent.classList.add('collapsed');
+      cardContent.classList.remove('expanded');
+      card.classList.remove('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to expand';
+    }
+  }
+
+  // Click anywhere on the page triggers the transition
+  document.addEventListener('click', (e) => {
+    toggleCard();
+  });
+</script>
+
+</body>
+</html>
