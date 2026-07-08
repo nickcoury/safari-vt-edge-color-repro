@@ -172,6 +172,63 @@
 }</div>
   </a>
 
+  <a class="variant-link" href="./bg-transparent-root/">
+    <div class="num">Variant 9</div>
+    <div class="name">BG: Transparent on Root Old/New</div>
+    <div class="desc">Set <code>background: transparent</code> on <code>::view-transition-old(root)</code> and <code>::view-transition-new(root)</code>. Safari may sample these backgrounds for the header/footer bar color.</div>
+    <div class="css-snippet">::view-transition-old(root),
+::view-transition-new(root) { background: transparent; }</div>
+  </a>
+
+  <a class="variant-link" href="./bg-transparent-group/">
+    <div class="num">Variant 10</div>
+    <div class="name">BG: Transparent on Root Group</div>
+    <div class="desc">Set <code>background: transparent</code> on <code>::view-transition-group(root)</code> — the container that wraps the image pair and covers the full viewport.</div>
+    <div class="css-snippet">::view-transition-group(root) { background: transparent; }</div>
+  </a>
+
+  <a class="variant-link" href="./bg-transparent-overlay/">
+    <div class="num">Variant 11</div>
+    <div class="name">BG: Transparent on ::view-transition Overlay</div>
+    <div class="desc">Set <code>background: transparent</code> on the top-level <code>::view-transition</code> pseudo-element — the outermost VT overlay covering the entire viewport.</div>
+    <div class="css-snippet">::view-transition { background: transparent; }</div>
+  </a>
+
+  <a class="variant-link" href="./bg-transparent-all/">
+    <div class="num">Variant 12</div>
+    <div class="name">BG: Transparent on ALL Root VT Elements</div>
+    <div class="desc">Aggressively set <code>background: transparent</code> on every root VT pseudo-element: overlay, group, image-pair, old, and new.</div>
+    <div class="css-snippet">::view-transition,
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) { background: transparent; }</div>
+  </a>
+
+  <a class="variant-link" href="./bg-transparent-no-anim/">
+    <div class="num">Variant 13</div>
+    <div class="name">Combo: Transparent BG + No Root Animation</div>
+    <div class="desc">Combines variants 2 + 9: root old/new get both <code>background: transparent</code> and <code>animation: none</code>.</div>
+    <div class="css-snippet">::view-transition-old(root),
+::view-transition-new(root) {
+  background: transparent;
+  animation: none;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./bg-transparent-hide-old/">
+    <div class="num">Variant 14</div>
+    <div class="name">Combo: Transparent BG + Hide Root Old</div>
+    <div class="desc">Combines variants 3 + 9: old root hidden with transparent bg, new root also transparent as a safety net.</div>
+    <div class="css-snippet">::view-transition-old(root) {
+  background: transparent;
+  display: none;
+}
+::view-transition-new(root) {
+  background: transparent;
+}</div>
+  </a>
+
 </div>
 
 <div class="note">
