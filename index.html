@@ -4,214 +4,179 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
-<title>View Transition Edge-to-Edge Repro</title>
+<title>Safari VT Edge-to-Edge Repro — Variants</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html {
-    background: white;
-  }
-
   body {
-    background: white;
+    background: #fff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    min-height: 100vh;
-    /* Ensure body extends into safe areas on notched devices */
-    min-height: -webkit-fill-available;
-  }
-
-  .page {
+    color: #111;
     padding: 24px;
     padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
-    max-width: 600px;
+    max-width: 640px;
     margin: 0 auto;
-    min-height: 250vh;
-    display: flex;
-    flex-direction: column;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
-  /* ── Card (shared element) ── */
-  .card {
-    background: #f0f0f0;
-    border-radius: 20px;
-    padding: 24px;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    view-transition-name: card;
-    contain: layout style;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Safari-friendly: paint containment for VT */
-  ::view-transition-old(card),
-  ::view-transition-new(card) {
-    animation-duration: 0.35s;
-    animation-timing-function: ease-out;
-  }
-
-  .card-title {
-    font-size: 22px;
+  h1 {
+    font-size: 24px;
     font-weight: 700;
-    margin-bottom: 10px;
-    color: #111;
-  }
-
-  .card-body {
-    font-size: 16px;
-    line-height: 1.65;
-    color: #333;
-  }
-
-  .card-body p + p {
-    margin-top: 12px;
-  }
-
-  /* Truncation state */
-  .card-content {
-    overflow: hidden;
-    transition: max-height 0.35s ease-out;
-  }
-
-  .card-content.collapsed {
-    max-height: 80px;
-    /* Soft fade at the bottom to hint truncation */
-    -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
-    mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
-  }
-
-  .card-content.expanded {
-    max-height: 2000px;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .tap-hint {
-    margin-top: 12px;
-    font-size: 13px;
-    color: #888;
-    font-style: italic;
-  }
-
-  .card.expanded-card .tap-hint {
-    display: none;
-  }
-
-  /* ── Placeholder sections ── */
-  .placeholder {
-    margin-top: 32px;
-    flex: 1;
-  }
-
-  .placeholder-section {
-    margin-bottom: 36px;
-  }
-
-  .placeholder-section h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #222;
     margin-bottom: 8px;
   }
 
-  .placeholder-section p {
-    font-size: 15px;
-    line-height: 1.5;
+  .subtitle {
+    font-size: 14px;
     color: #666;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  .variant-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .variant-link {
+    display: block;
+    background: #f5f5f5;
+    border-radius: 14px;
+    padding: 16px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+  }
+
+  .variant-link:active {
+    background: #e8e8e8;
+  }
+
+  .variant-link .num {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 4px;
+  }
+
+  .variant-link .name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .variant-link .desc {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
+  }
+
+  .variant-link .css-snippet {
+    margin-top: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 12px;
+    color: #333;
+    background: #eaeaea;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+  }
+
+  .note {
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: #fff3cd;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #664d03;
+    line-height: 1.5;
   }
 </style>
 </head>
 <body>
 
-<div class="page">
-  <!-- Shared-element card -->
-  <div class="card" id="card">
-    <div class="card-title">View Transition Card</div>
-    <div class="card-content collapsed" id="cardContent">
-      <div class="card-body">
-        <p>This card acts as a <strong>shared element</strong> during a View Transition. It starts truncated to ~two lines. Tap anywhere on the page to trigger a crossfade + morph transition that expands the card to reveal the full content.</p>
-        <p>The View Transitions API captures a snapshot of this card before the DOM update, then crossfades between the old snapshot and the new live state. Because the card has <code>view-transition-name: card</code> set, the browser treats it as a shared element and attempts to morph between the two states — animating position, size, and shape differences.</p>
-        <p>This is a minimal reproduction for testing Safari on edge-to-edge displays (iPhone with Dynamic Island / notch). The page uses <code>viewport-fit=cover</code> and extends content into the safe areas to surface any color or rendering glitches during the transition animation.</p>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur auctor metus nec odio tincidunt, vel fermentum lorem bibendum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.</p>
-      </div>
-    </div>
-    <div class="tap-hint" id="tapHint">👆 Tap anywhere to expand</div>
-  </div>
+<h1>Safari VT Edge-to-Edge Repro</h1>
+<p class="subtitle">
+  <strong>Bug:</strong> On Safari (iOS 18.2+) with edge-to-edge displays, the View Transitions root snapshot renders the floating header/footer as a solid color (white) during the transition, instead of transparent.<br><br>
+  Each variant below tests a different strategy to suppress or work around the root snapshot while keeping the shared-element card transition working.
+</p>
 
-  <!-- Scroll fodder — multiple viewports of placeholder content -->
-  <div class="placeholder">
-    <div class="placeholder-section">
-      <h2>Section One — Setup</h2>
-      <p>This content exists to force the page well beyond a single viewport, ensuring the browser has scrollable content. On a typical phone display (≈800px tall), this page spans roughly 2.5 viewports.</p>
-      <p>The white background should remain solid through the entire view transition — no flickers, no black flashes, no bleed from underlying layers.</p>
-    </div>
+<div class="variant-list">
 
-    <div class="placeholder-section">
-      <h2>Section Two — Safari View Transitions</h2>
-      <p>Safari shipped support for the View Transitions API (same-document) starting in Safari 18.2. Shared element transitions using <code>view-transition-name</code> should smoothly animate the card between collapsed and expanded states.</p>
-      <p>On notched iPhones with edge-to-edge displays, the view transition overlay layer may not respect the page background color behind the status bar area, resulting in a visible flash of a different color (often black or the system background).</p>
-    </div>
+  <a class="variant-link" href="./baseline/">
+    <div class="num">Variant 1</div>
+    <div class="name">Baseline (reproduces the bug)</div>
+    <div class="desc">Standard View Transition with shared card element. Root crossfade is left at defaults — the header/footer flash white during transition.</div>
+    <div class="css-snippet">/* No overrides — default VT behavior */</div>
+  </a>
 
-    <div class="placeholder-section">
-      <h2>Section Three — Expected vs. Actual</h2>
-      <p><strong>Expected:</strong> Tapping anywhere on the page triggers a smooth view transition. The white page background remains white throughout. The card expands in place with a crossfade/morph animation. No color flashes appear in the safe area regions.</p>
-      <p><strong>Actual (bug):</strong> During the transition, the area behind the notch / Dynamic Island briefly renders in black or dark gray instead of white, creating a jarring flash. This is the edge-to-edge VT color issue this repro targets.</p>
-    </div>
+  <a class="variant-link" href="./no-root-anim/">
+    <div class="num">Variant 2</div>
+    <div class="name">No Root Animation</div>
+    <div class="desc">Disable root snapshot animation entirely. The old root still exists but doesn't animate — shared element should still morph.</div>
+    <div class="css-snippet">::view-transition-old(root),
+::view-transition-new(root) { animation: none; }</div>
+  </a>
 
-    <div class="placeholder-section">
-      <h2>Section Four — Environment</h2>
-      <p>Test on Safari (iOS 18.2+ or latest) on a device with a notch or Dynamic Island — iPhone 14 Pro or later is ideal. The effect is most visible in light mode with a white page background.</p>
-      <p>Tap the card or anywhere on the page to trigger. Tap again to collapse. Repeat and observe the safe area region above the card during the transition animation.</p>
-    </div>
+  <a class="variant-link" href="./hide-root-old/">
+    <div class="num">Variant 3</div>
+    <div class="name">Hide Root Old Snapshot</div>
+    <div class="desc">Set display:none on the old root snapshot only. The new state appears immediately; the card still crossfades as a shared element.</div>
+    <div class="css-snippet">::view-transition-old(root) { display: none; }</div>
+  </a>
 
-    <div class="placeholder-section">
-      <h2>Section Five — Footer Padding</h2>
-      <p>Extra content to push the page past 2.5 viewports. The scroll position should not jump during the transition.</p>
-      <p>Donec euismod, nisi vel consectetur interdum, nisl nunc egestas nunc, vitae tincidunt nisl nunc euismod nunc. Sed euismod, nisi vel consectetur interdum, nisl nunc egestas nunc, vitae tincidunt nisl nunc euismod nunc.</p>
-    </div>
-  </div>
+  <a class="variant-link" href="./hide-root-both/">
+    <div class="num">Variant 4</div>
+    <div class="name">Hide Root Both (Old + New)</div>
+    <div class="desc">Hide both old and new root pseudo-elements. Only the shared element group remains visible during the transition.</div>
+    <div class="css-snippet">::view-transition-old(root),
+::view-transition-new(root) { display: none; }</div>
+  </a>
+
+  <a class="variant-link" href="./root-opacity-0/">
+    <div class="num">Variant 5</div>
+    <div class="name">Root Old Opacity 0</div>
+    <div class="desc">Keep the root animation timing but set old root opacity to 0 — the snapshot is captured but never made visible.</div>
+    <div class="css-snippet">::view-transition-old(root) { opacity: 0 !important; }</div>
+  </a>
+
+  <a class="variant-link" href="./page-wrapper-shared/">
+    <div class="num">Variant 6</div>
+    <div class="name">Page Wrapper as Shared Element</div>
+    <div class="desc">Give the page background wrapper its own view-transition-name so it's also an animated shared element, not a static snapshot.</div>
+    <div class="css-snippet">.page-bg { view-transition-name: page-bg; }
+::view-transition-old(root) { animation: none; }</div>
+  </a>
+
+  <a class="variant-link" href="./types-scoped/">
+    <div class="num">Variant 7</div>
+    <div class="name">Types-Scoped Transitions</div>
+    <div class="desc">Use startViewTransition({types: ['card-expand']}) with :active-view-transition-type() to scope CSS only when this specific transition runs.</div>
+    <div class="css-snippet">html:active-view-transition-type(card-expand)
+  ::view-transition-old(root) { animation: none; }</div>
+  </a>
+
+  <a class="variant-link" href="./clip-safe-areas/">
+    <div class="num">Variant 8</div>
+    <div class="name">Clip Root to Exclude Safe Areas</div>
+    <div class="desc">Apply clip-path to the root group to exclude the safe-area-inset regions. If the root snapshot is what paints solid white in those areas, clipping it out might let the real page show through.</div>
+    <div class="css-snippet">::view-transition-group(root) {
+  clip-path: inset(
+    env(safe-area-inset-top, 0px) 0
+    env(safe-area-inset-bottom, 0px) 0
+  );
+}</div>
+  </a>
+
 </div>
 
-<script>
-  const cardContent = document.getElementById('cardContent');
-  const card = document.getElementById('card');
-  const tapHint = document.getElementById('tapHint');
-  let isExpanded = false;
-
-  function toggleCard() {
-    // Use native View Transitions API if available
-    if (document.startViewTransition) {
-      document.startViewTransition(() => updateCardState());
-    } else {
-      // Fallback for browsers without VT support
-      updateCardState();
-    }
-  }
-
-  function updateCardState() {
-    isExpanded = !isExpanded;
-    if (isExpanded) {
-      cardContent.classList.remove('collapsed');
-      cardContent.classList.add('expanded');
-      card.classList.add('expanded-card');
-      tapHint.textContent = '👆 Tap anywhere to collapse';
-    } else {
-      cardContent.classList.add('collapsed');
-      cardContent.classList.remove('expanded');
-      card.classList.remove('expanded-card');
-      tapHint.textContent = '👆 Tap anywhere to expand';
-    }
-  }
-
-  // Click anywhere on the page triggers the transition
-  document.addEventListener('click', (e) => {
-    toggleCard();
-  });
-</script>
+<div class="note">
+  <strong>Testing note:</strong> Open each variant on Safari (iOS 18.2+) on a notched iPhone (14 Pro or later). Tap the page and observe the Dynamic Island / home indicator regions during the transition animation. The goal is for those areas to remain transparent (showing the system background) rather than flashing solid white.
+</div>
 
 </body>
 </html>

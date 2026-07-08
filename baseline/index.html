@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>V1 — Baseline — Safari VT Repro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: white; }
+  body {
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  .page {
+    padding: 24px;
+    padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 250vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .back-link {
+    display: inline-block;
+    font-size: 14px;
+    color: #007aff;
+    text-decoration: none;
+    margin-bottom: 8px;
+  }
+  .variant-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .variant-desc {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+  .code-block {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 12px;
+    background: #eee;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: #333;
+    white-space: pre-wrap;
+  }
+  /* Card */
+  .card {
+    background: #f0f0f0;
+    border-radius: 20px;
+    padding: 24px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    view-transition-name: card;
+    contain: layout style;
+    position: relative;
+    z-index: 1;
+  }
+  ::view-transition-old(card),
+  ::view-transition-new(card) {
+    animation-duration: 0.35s;
+    animation-timing-function: ease-out;
+  }
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #111;
+  }
+  .card-body { font-size: 16px; line-height: 1.65; color: #333; }
+  .card-body p + p { margin-top: 12px; }
+  .card-content { overflow: hidden; transition: max-height 0.35s ease-out; }
+  .card-content.collapsed {
+    max-height: 80px;
+    -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+    mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+  }
+  .card-content.expanded {
+    max-height: 2000px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .tap-hint { margin-top: 12px; font-size: 13px; color: #888; font-style: italic; }
+  .card.expanded-card .tap-hint { display: none; }
+  .placeholder { margin-top: 32px; flex: 1; }
+  .placeholder-section { margin-bottom: 36px; }
+  .placeholder-section h2 { font-size: 18px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .placeholder-section p { font-size: 15px; line-height: 1.5; color: #666; }
+
+  /* ✦ VT overrides — NONE (baseline) ✦ */
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../">← Back to index</a>
+  <div class="variant-label">Variant 1</div>
+  <div class="variant-desc">
+    <strong>Baseline — reproduces the bug.</strong> Standard View Transition with shared card element. No CSS overrides on the root snapshot. The floating header/footer area turns solid white during the transition.
+  </div>
+  <div class="code-block">/* No View Transition overrides — default behavior */</div>
+
+  <div class="card" id="card">
+    <div class="card-title">View Transition Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p>This card uses <code>view-transition-name: card</code> — a shared element. Tap anywhere to trigger the transition. On Safari with edge-to-edge displays, the root view transition snapshot paints the safe areas as solid white.</p>
+        <p>The View Transitions API captures the entire viewport as a static snapshot for the root crossfade. On notched iPhones using <code>viewport-fit=cover</code>, this snapshot flattens the transparent header/footer regions into the page's background color (white), creating a visible flash.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur auctor metus nec odio tincidunt, vel fermentum lorem bibendum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Tap anywhere to expand</div>
+  </div>
+
+  <div class="placeholder">
+    <div class="placeholder-section"><h2>Section One — Setup</h2><p>This content forces the page well beyond a single viewport. On a typical phone display (~800px), this page spans roughly 2.5 viewports.</p><p>The white background should remain solid through the entire transition — no black flashes, no bleed from underlying layers.</p></div>
+    <div class="placeholder-section"><h2>Section Two — Safari View Transitions</h2><p>Safari shipped support for same-document View Transitions in Safari 18.2. Shared element transitions should smoothly animate the card between states.</p><p>On notched iPhones, the view transition overlay layer may not respect the page background behind the status bar, resulting in a flash of a different color.</p></div>
+    <div class="placeholder-section"><h2>Section Three — Expected vs. Actual</h2><p><strong>Expected:</strong> Smooth transition with no color flashes in safe areas.</p><p><strong>Actual (bug):</strong> The Dynamic Island / notch area briefly renders solid white instead of transparent during the transition.</p></div>
+    <div class="placeholder-section"><h2>Section Four — Environment</h2><p>Test on Safari iOS 18.2+ on a device with notch or Dynamic Island. iPhone 14 Pro or later. Most visible in light mode with white background.</p></div>
+  </div>
+</div>
+
+<script>
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+
+  function toggleCard() {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => updateCardState());
+    } else {
+      updateCardState();
+    }
+  }
+
+  function updateCardState() {
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      cardContent.classList.remove('collapsed');
+      cardContent.classList.add('expanded');
+      card.classList.add('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to collapse';
+    } else {
+      cardContent.classList.add('collapsed');
+      cardContent.classList.remove('expanded');
+      card.classList.remove('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to expand';
+    }
+  }
+
+  document.addEventListener('click', (e) => { toggleCard(); });
+</script>
+</body>
+</html>
