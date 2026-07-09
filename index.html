@@ -303,6 +303,33 @@ body         → 🟠 ORANGE (#FF9100)
 ⬜ WHITE = Safari default/system</div>
   </a>
 
+  <a class="variant-link" href="./body-black/">
+    <div class="num">Variant 21</div>
+    <div class="name">Body = BLACK — Confirm Control</div>
+    <div class="desc">V20 proved Safari samples <code>body</code>'s background. This sets <code>body { background: #000 }</code>. If safe areas turn black, we confirm full control — the fix is just finding the right color value.</div>
+    <div class="css-snippet">body { background: #000000; }</div>
+  </a>
+
+  <a class="variant-link" href="./body-background-none/">
+    <div class="num">Variant 22</div>
+    <div class="name">Body Background: none</div>
+    <div class="desc">Uses <code>background: none</code> instead of <code>background: transparent</code>. The <code>none</code> shorthand resets all background properties to initial. Safari's compositing might handle this differently.</div>
+    <div class="css-snippet">body { background: none; }
+::view-transition,
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  background: transparent;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./body-canvas/">
+    <div class="num">Variant 23</div>
+    <div class="name">Body = Canvas (System Color)</div>
+    <div class="desc">Sets <code>body { background: Canvas }</code> — the CSS system color keyword for the OS's native background. Might blend with the system bars seamlessly in both light and dark mode.</div>
+    <div class="css-snippet">body { background: Canvas; }</div>
+  </a>
+
 </div>
 
 <div class="note">
