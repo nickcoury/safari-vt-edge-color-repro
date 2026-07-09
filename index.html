@@ -273,6 +273,36 @@ pageEl.style.background = 'transparent';
 // After transition.finished: restore all</div>
   </a>
 
+  <a class="variant-link" href="./zero-white/">
+    <div class="num">Variant 19</div>
+    <div class="name">Zero White — No White Anywhere</div>
+    <div class="desc"><code>html</code>, <code>body</code>, and <code>.page</code> all <code>transparent</code>. Every VT pseudo-element transparent + <code>animation: none</code>. The only non-transparent element is the card itself. If Safari still flashes white, it's not from CSS.</div>
+    <div class="css-snippet">html, body { background: transparent; }
+.page { /* no background */ }
+::view-transition,
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  background: transparent;
+  animation: none;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./color-trace/">
+    <div class="num">Variant 20 🔬</div>
+    <div class="name">Color Trace — Every Element Distinct Color</div>
+    <div class="desc">Each element (html, body, .page, every VT pseudo-element) gets a unique bright color. VT slowed to 2s. Match the safe-area flash color to the legend to identify the exact source element.</div>
+    <div class="css-snippet">html         → 🔴 RED    (#FF1744)
+body         → 🟠 ORANGE (#FF9100)
+.page        → 🟡 YELLOW (#FFEA00)
+::view-transition         → 🟣 MAGENTA
+::view-transition-group   → 🟢 GREEN
+::view-transition-old     → 🔵 BLUE
+::view-transition-new     → 🩷 PINK
+⬜ WHITE = Safari default/system</div>
+  </a>
+
 </div>
 
 <div class="note">

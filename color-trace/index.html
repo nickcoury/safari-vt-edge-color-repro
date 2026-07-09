@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>V20 — Color Trace — Safari VT Repro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ═══════════════════════════════════════════
+     COLOR LEGEND — each element gets a unique color.
+     Whatever color appears in the safe areas
+     during the transition tells us the source.
+     ═══════════════════════════════════════════ */
+
+  /* 🔴 RED    — html (full viewport background) */
+  html { background: #FF1744; }
+
+  /* 🟠 ORANGE — body */
+  body {
+    background: #FF9100;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; min-height: -webkit-fill-available;
+  }
+
+  /* 🟡 YELLOW — .page wrapper */
+  .page {
+    background: #FFEA00;
+    padding: 24px; padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px; margin: 0 auto; min-height: 250vh;
+    display: flex; flex-direction: column;
+    outline: 3px dashed #000; /* visible boundary */
+  }
+
+  .page * {
+    /* Reset children — text elements get white bg for readability */
+  }
+
+  .back-link { display: inline-block; font-size: 14px; color: #007aff; text-decoration: none; margin-bottom: 8px; background: rgba(255,255,255,0.85); padding: 2px 8px; border-radius: 4px; }
+  .variant-label { font-size: 13px; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; text-shadow: 0 0 6px white; }
+  .variant-desc { font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 20px; }
+
+  .legend {
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .legend strong { font-size: 14px; }
+  .legend .swatch {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.2);
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+
+  .code-block { font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px; background: rgba(255,255,255,0.85); padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; color: #333; white-space: pre-wrap; }
+
+  /* ⚪ LIGHT GRAY — card (neutral, not a background element) */
+  .card {
+    background: #E0E0E0; border-radius: 20px; padding: 24px; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+    view-transition-name: card; contain: layout style; position: relative; z-index: 1;
+    outline: 2px dashed #999;
+  }
+  ::view-transition-old(card), ::view-transition-new(card) { animation-duration: 2s; animation-timing-function: ease-out; }
+  .card-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #111; }
+  .card-body { font-size: 16px; line-height: 1.65; color: #333; }
+  .card-body p + p { margin-top: 12px; }
+  .card-content { overflow: hidden; transition: max-height 0.35s ease-out; }
+  .card-content.collapsed { max-height: 80px; -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px); mask-image: linear-gradient(to bottom, black 40px, transparent 70px); }
+  .card-content.expanded { max-height: 2000px; -webkit-mask-image: none; mask-image: none; }
+  .tap-hint { margin-top: 12px; font-size: 13px; color: #444; font-style: italic; }
+  .card.expanded-card .tap-hint { display: none; }
+  .placeholder { margin-top: 32px; flex: 1; }
+  .placeholder-section {
+    margin-bottom: 36px;
+    background: rgba(255,255,255,0.85);
+    padding: 16px;
+    border-radius: 10px;
+  }
+  .placeholder-section h2 { font-size: 18px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .placeholder-section p { font-size: 15px; line-height: 1.5; color: #555; }
+
+  /* ═══════════════════════════════════════════
+     VT PSEUDO-ELEMENT COLORS (only visible during transition)
+     Each gets a DISTINCT color. Animation slowed to 2s.
+     ═══════════════════════════════════════════ */
+
+  /* 🟣 MAGENTA — ::view-transition (top-level overlay, full viewport) */
+  ::view-transition {
+    background: #FF00FF;
+    /* outline so it's visible even if transparent bg */
+    outline: 3px dashed #FF00FF;
+  }
+
+  /* 🟢 GREEN — ::view-transition-group(root) */
+  ::view-transition-group(root) {
+    background: #76FF03;
+  }
+
+  /* 🟤 BROWN — ::view-transition-image-pair(root) */
+  ::view-transition-image-pair(root) {
+    background: #795548;
+  }
+
+  /* 🔵 BLUE — ::view-transition-old(root) — OLD page snapshot */
+  ::view-transition-old(root) {
+    background: #2979FF;
+    animation-duration: 2s;
+    animation-timing-function: ease-out;
+  }
+
+  /* 🩷 PINK — ::view-transition-new(root) — NEW live page */
+  ::view-transition-new(root) {
+    background: #FF4081;
+    animation-duration: 2s;
+    animation-timing-function: ease-out;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../">← Back to index</a>
+  <div class="variant-label">Variant 20</div>
+  <div class="variant-desc"><strong>Color Trace Diagnostic.</strong> Every element has a unique, bright background color. The VT animation is slowed to <strong>2 seconds</strong>. During the transition, observe the safe areas (Dynamic Island / home indicator). Whatever color you see there tells you which element Safari is sampling from.</div>
+
+  <div class="legend">
+    <strong>🎨 Color → Element Mapping:</strong><br>
+    <span class="swatch" style="background:#FF1744"></span> <strong>RED</strong> = <code>html</code> (full viewport)<br>
+    <span class="swatch" style="background:#FF9100"></span> <strong>ORANGE</strong> = <code>body</code><br>
+    <span class="swatch" style="background:#FFEA00"></span> <strong>YELLOW</strong> = <code>.page</code> wrapper (content area)<br>
+    <span class="swatch" style="background:#E0E0E0"></span> <strong>LIGHT GRAY</strong> = <code>.card</code> (shared element)<br>
+    <br>
+    <em>VT pseudo-elements (only visible during the 2s transition):</em><br>
+    <span class="swatch" style="background:#FF00FF"></span> <strong>MAGENTA</strong> = <code>::view-transition</code> (top-level overlay)<br>
+    <span class="swatch" style="background:#76FF03"></span> <strong>GREEN</strong> = <code>::view-transition-group(root)</code><br>
+    <span class="swatch" style="background:#795548"></span> <strong>BROWN</strong> = <code>::view-transition-image-pair(root)</code><br>
+    <span class="swatch" style="background:#2979FF"></span> <strong>BLUE</strong> = <code>::view-transition-old(root)</code> (old snapshot)<br>
+    <span class="swatch" style="background:#FF4081"></span> <strong>PINK</strong> = <code>::view-transition-new(root)</code> (new live page)<br>
+    <br>
+    <strong>⬜ WHITE</strong> = none of the above — Safari default / system.<br>
+    <strong>⬛ BLACK</strong> = Safari's own compositing layer.
+  </div>
+
+  <div class="card" id="card">
+    <div class="card-title">🔬 Color Trace Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p><strong>Tap anywhere. Watch the safe areas (top and bottom).</strong> During the 2-second transition animation, note what color appears behind the Dynamic Island and home indicator.</p>
+        <p>The card is light gray. The page background is striped with colors: red → orange → yellow going from outside → inside. The VT pseudo-elements layer additional colors during the transition.</p>
+        <p>Match the flash color to the legend above to identify the exact element source.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur auctor metus nec odio tincidunt, vel fermentum lorem bibendum.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Tap anywhere — watch for color in safe areas</div>
+  </div>
+
+  <div class="placeholder">
+    <div class="placeholder-section"><h2>How to read this</h2><p>In normal state, the safe areas show <strong>RED</strong> (html background) or <strong>ORANGE</strong> (body covers html). During the 2-second transition, if the color changes, a VT pseudo-element is painting over the page.</p></div>
+    <div class="placeholder-section"><h2>Expected findings</h2><p>If the safe area turns MAGENTA → <code>::view-transition</code> is the source. If it turns BLUE/PINK → the old/new root snapshots are the source. If it stays RED/ORANGE → it's coming from html/body, not VT.</p></div>
+    <div class="placeholder-section"><h2>If WHITE appears</h2><p>If none of the colors above match and you see WHITE, then the color source is outside our CSS — Safari's default compositing or system theme.</p></div>
+    <div class="placeholder-section"><h2>Test environment</h2><p>Safari iOS 18.2+ on notched iPhone. Watch carefully during the 2-second animation.</p></div>
+  </div>
+</div>
+
+<script>
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+  function toggleCard() {
+    if (document.startViewTransition) { document.startViewTransition(() => updateCardState()); }
+    else { updateCardState(); }
+  }
+  function updateCardState() {
+    isExpanded = !isExpanded;
+    if (isExpanded) { cardContent.classList.remove('collapsed'); cardContent.classList.add('expanded'); card.classList.add('expanded-card'); tapHint.textContent = '👆 Tap anywhere — watch for color in safe areas'; }
+    else { cardContent.classList.add('collapsed'); cardContent.classList.remove('expanded'); card.classList.remove('expanded-card'); tapHint.textContent = '👆 Tap anywhere — watch for color in safe areas'; }
+  }
+  document.addEventListener('click', (e) => { toggleCard(); });
+</script>
+</body>
+</html>
