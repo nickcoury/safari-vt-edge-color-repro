@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>V33 — Root NOT a VT Participant — Safari VT Repro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: white; }
+  body {
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; min-height: -webkit-fill-available;
+  }
+  .page {
+    padding: 24px; padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px; margin: 0 auto; min-height: 250vh;
+    display: flex; flex-direction: column;
+  }
+  .back-link { display: inline-block; font-size: 14px; color: #007aff; text-decoration: none; margin-bottom: 8px; }
+  .variant-label { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .variant-desc { font-size: 14px; color: #555; line-height: 1.5; margin-bottom: 20px; }
+  .code-block { font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px; background: #eee; padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; color: #333; white-space: pre-wrap; }
+  .card {
+    background: #f0f0f0; border-radius: 20px; padding: 24px; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+    view-transition-name: card; contain: layout style; position: relative; z-index: 1;
+  }
+  ::view-transition-old(card), ::view-transition-new(card) { animation-duration: 0.35s; }
+  .card-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #111; }
+  .card-body { font-size: 16px; line-height: 1.65; color: #333; }
+  .card-body p + p { margin-top: 12px; }
+  .card-content { overflow: hidden; transition: max-height 0.35s ease-out; }
+  .card-content.collapsed { max-height: 80px; -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px); mask-image: linear-gradient(to bottom, black 40px, transparent 70px); }
+  .card-content.expanded { max-height: 2000px; -webkit-mask-image: none; mask-image: none; }
+  .tap-hint { margin-top: 12px; font-size: 13px; color: #888; font-style: italic; }
+  .card.expanded-card .tap-hint { display: none; }
+  .placeholder { margin-top: 32px; flex: 1; }
+  .placeholder-section { margin-bottom: 36px; }
+  .placeholder-section h2 { font-size: 18px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .placeholder-section p { font-size: 15px; line-height: 1.5; color: #666; }
+
+  /* ✦ Prevent root element from participating in VT.
+     Only the card should be a VT element.
+     If root isn't captured, Safari shouldn't fill the canvas. ✦ */
+  :root, html {
+    view-transition-name: none !important;
+  }
+
+  /* Ensure no other elements accidentally get VT names */
+  body, .page, .placeholder, .placeholder-section {
+    view-transition-name: none !important;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../">← Back to index</a>
+  <div class="variant-label">Variant 33</div>
+  <div class="variant-desc"><strong>Root NOT a VT Participant.</strong> <code>:root, html { view-transition-name: none !important }</code> — only the card has a VT name. Also sets <code>none</code> on body, .page, and placeholder sections to prevent accidental capture. If the root isn't captured, Safari should have no canvas to fill.</div>
+  <div class="code-block">:root, html, body, .page,
+.placeholder, .placeholder-section {
+  view-transition-name: none !important;
+}
+/* Only .card has view-transition-name */</div>
+
+  <div class="card" id="card">
+    <div class="card-title">View Transition Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p>Only the card participates in the view transition. The root, html, body, and all other elements are explicitly excluded with <code>view-transition-name: none !important</code>.</p>
+        <p>If Safari still fills the canvas with white during VT, the root snapshot is always captured regardless of <code>view-transition-name</code> — it's a structural part of the VT tree, not a named participant.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Tap anywhere to expand</div>
+  </div>
+
+  <div class="placeholder">
+    <div class="placeholder-section"><h2>Section One</h2><p>Placeholder content spanning multiple viewports. Only the card participates in VT.</p></div>
+    <div class="placeholder-section"><h2>Section Two</h2><p>If this works, the fix is: exclude root from VT and only name the elements you want to animate.</p></div>
+    <div class="placeholder-section"><h2>Section Three</h2><p>If this doesn't work, the root group is structural — it's always in the VT tree regardless of view-transition-name.</p></div>
+  </div>
+</div>
+
+<script>
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+  function toggleCard() {
+    if (document.startViewTransition) { document.startViewTransition(() => updateCardState()); }
+    else { updateCardState(); }
+  }
+  function updateCardState() {
+    isExpanded = !isExpanded;
+    if (isExpanded) { cardContent.classList.remove('collapsed'); cardContent.classList.add('expanded'); card.classList.add('expanded-card'); tapHint.textContent = '👆 Tap anywhere to collapse'; }
+    else { cardContent.classList.add('collapsed'); cardContent.classList.remove('expanded'); card.classList.remove('expanded-card'); tapHint.textContent = '👆 Tap anywhere to expand'; }
+  }
+  document.addEventListener('click', (e) => { toggleCard(); });
+</script>
+</body>
+</html>

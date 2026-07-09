@@ -447,6 +447,27 @@ document.querySelectorAll('*').forEach(el => {
 }</div>
   </a>
 
+  <a class="variant-link" href="./no-root-vt-participant/">
+    <div class="num">Variant 33</div>
+    <div class="name">Root NOT a VT Participant</div>
+    <div class="desc"><code>:root, html, body, .page { view-transition-name: none !important }</code>. Only the card participates. If the root isn't captured as a VT element, Safari may skip the canvas fill entirely.</div>
+    <div class="css-snippet">:root, html, body, .page {
+  view-transition-name: none !important;
+}
+/* Only .card has view-transition-name */</div>
+  </a>
+
+  <a class="variant-link" href="./no-vt-css-only/" style="background:#e8ffe8;">
+    <div class="num">Variant 34 ✅</div>
+    <div class="name">No View Transitions API — CSS Only</div>
+    <div class="desc">Completely avoids VT: no <code>view-transition-name</code>, no <code>startViewTransition()</code>. Pure CSS <code>transition: max-height</code>. No VT overlay = no canvas fill = safe areas stay transparent. Card still expands smoothly.</div>
+    <div class="css-snippet">/* No View Transitions API at all */
+.card-content {
+  transition: max-height 0.4s ease-out;
+}
+// JS: just toggle class, no startViewTransition</div>
+  </a>
+
 </div>
 
 <div class="note">

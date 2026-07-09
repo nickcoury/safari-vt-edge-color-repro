@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>V34 — No VT, CSS-Only Transition</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: white; }
+  body {
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; min-height: -webkit-fill-available;
+  }
+  .page {
+    padding: 24px; padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px; margin: 0 auto; min-height: 250vh;
+    display: flex; flex-direction: column;
+  }
+  .back-link { display: inline-block; font-size: 14px; color: #007aff; text-decoration: none; margin-bottom: 8px; }
+  .variant-label { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .variant-desc { font-size: 14px; color: #555; line-height: 1.5; margin-bottom: 20px; }
+  .code-block { font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px; background: #eee; padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; color: #333; white-space: pre-wrap; }
+
+  /* ✦ NO view-transition-name anywhere. Pure CSS transition. ✦ */
+  .card {
+    background: #f0f0f0; border-radius: 20px; padding: 24px; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+    position: relative; z-index: 1;
+  }
+  .card-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #111; }
+  .card-body { font-size: 16px; line-height: 1.65; color: #333; }
+  .card-body p + p { margin-top: 12px; }
+
+  /* CSS transition on max-height for expand/collapse */
+  .card-content {
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+  }
+  .card-content.collapsed {
+    max-height: 80px;
+    -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+    mask-image: linear-gradient(to bottom, black 40px, transparent 70px);
+  }
+  .card-content.expanded {
+    max-height: 2000px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .tap-hint { margin-top: 12px; font-size: 13px; color: #888; font-style: italic; }
+  .card.expanded-card .tap-hint { display: none; }
+  .placeholder { margin-top: 32px; flex: 1; }
+  .placeholder-section { margin-bottom: 36px; }
+  .placeholder-section h2 { font-size: 18px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .placeholder-section p { font-size: 15px; line-height: 1.5; color: #666; }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../">← Back to index</a>
+  <div class="variant-label">Variant 34</div>
+  <div class="variant-desc"><strong>No View Transitions API — CSS Only.</strong> Completely avoids <code>document.startViewTransition()</code> and <code>view-transition-name</code>. Uses a plain CSS <code>transition: max-height</code> on the card content. No VT = no canvas fill = safe areas stay truly transparent. The card still expands smoothly — just without the shared-element morph effect.</div>
+  <div class="code-block">/* No view-transition-name anywhere */
+/* No document.startViewTransition() */
+/* Just CSS: */
+.card-content {
+  transition: max-height 0.4s ease-out;
+}
+/* toggle .collapsed / .expanded class */
+
+// JS: just toggle the class
+cardContent.classList.toggle('collapsed');
+cardContent.classList.toggle('expanded');</div>
+
+  <div class="card" id="card">
+    <div class="card-title">CSS-Only Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p>This card uses <strong>zero View Transitions API</strong>. The expand/collapse is a plain CSS <code>transition: max-height 0.4s</code>. No <code>view-transition-name</code>, no <code>startViewTransition()</code>, no pseudo-elements, no canvas fill.</p>
+        <p>Safe areas should remain completely transparent throughout — just like they are when you scroll normally. The tradeoff: no shared-element morph, just a smooth height expansion.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur auctor metus nec odio tincidunt, vel fermentum lorem bibendum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Tap anywhere to expand (CSS only, no VT)</div>
+  </div>
+
+  <div class="placeholder">
+    <div class="placeholder-section"><h2>Section One</h2><p>Placeholder content spanning multiple viewports.</p></div>
+    <div class="placeholder-section"><h2>No VT = No Bug</h2><p>Since there's no View Transition, Safari never creates the VT overlay or fills the canvas. Safe areas behave exactly like normal scrolling.</p></div>
+    <div class="placeholder-section"><h2>Tradeoff</h2><p>You lose the shared-element crossfade/morph effect. But you gain reliable safe-area transparency. If the VT API is the only thing causing the bug, this is the workaround.</p></div>
+    <div class="placeholder-section"><h2>Test on Safari iOS</h2><p>Compare with Variant 1 (baseline VT). Safe areas should NOT flash white here.</p></div>
+  </div>
+</div>
+
+<script>
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+
+  function toggleCard() {
+    /* ✦ Pure CSS class toggle — no startViewTransition ✦ */
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      cardContent.classList.remove('collapsed');
+      cardContent.classList.add('expanded');
+      card.classList.add('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to collapse (CSS only)';
+    } else {
+      cardContent.classList.add('collapsed');
+      cardContent.classList.remove('expanded');
+      card.classList.remove('expanded-card');
+      tapHint.textContent = '👆 Tap anywhere to expand (CSS only, no VT)';
+    }
+  }
+  document.addEventListener('click', (e) => { toggleCard(); });
+</script>
+</body>
+</html>
