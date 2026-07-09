@@ -54,22 +54,23 @@
 <div class="page">
   <a class="back-link" href="../">← Back to index</a>
   <div class="variant-label">Variant 35</div>
-  <div class="variant-desc"><strong>No Root VT + Scroll Guard.</strong> Same as V33 (root excluded from VT) PLUS a JS guard: if <code>scrollY === 0</code> when VT is triggered, the page is scrolled 1px down first. This prevents the Safari top-of-page canvas fill edge case. After VT, scroll position is restored.</div>
-  <div class="code-block">// Before startViewTransition:
-const wasAtTop = scrollY === 0;
-if (wasAtTop) scrollTo(0, 1); // 1px nudge
+  <div class="variant-desc"><strong>No Root VT + Scroll Guard (30px).</strong> Same as V33 (root excluded from VT) + JS guard: if <code>scrollY &lt; 30px</code>, the page nudges to 30px before VT. Safari's overscroll zone extends ~5-20px from top — 30px clears it. Restored to original position after.</div>
+  <div class="code-block">// Safari's overscroll zone: ~5-20px from top
+const THRESHOLD = 30;
+const wasNearTop = scrollY < THRESHOLD;
+if (wasNearTop) scrollTo(0, THRESHOLD);
 
 document.startViewTransition(() => updateCardState());
 
 // After transition.finished:
-if (wasAtTop) scrollTo(0, 0); // restore</div>
+if (wasNearTop) scrollTo(0, savedScrollY);</div>
 
   <div class="card" id="card">
     <div class="card-title">View Transition Card</div>
     <div class="card-content collapsed" id="cardContent">
       <div class="card-body">
-        <p><strong>V26/V33 work except at scrollY=0.</strong> This variant adds a 1px scroll guard: if you're at the very top of the page when you tap, the page nudges down 1px before starting the VT, then restores after.</p>
-        <p>The 1px scroll is imperceptible but prevents Safari's top-of-page canvas fill. If this works consistently at ALL scroll positions (including top), we have a reliable workaround.</p>
+        <p><strong>V26/V33 work except in Safari's overscroll zone (~5-20px from top).</strong> This variant nudges to 30px before VT if you're within that zone, clearing the overscroll region. Restores to original position after.</p>
+        <p>The 30px nudge is barely perceptible. If this works consistently at ALL scroll positions, we have a reliable fix: exclude root from VT + clear the overscroll zone.</p>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
       </div>
     </div>
@@ -96,22 +97,22 @@ if (wasAtTop) scrollTo(0, 0); // restore</div>
       return;
     }
 
-    /* ✦ Scroll guard: Safari fills the canvas only at scrollY=0.
-       Nudge 1px before VT, restore after. Imperceptible to the user. ✦ */
-    const wasAtTop = window.scrollY === 0;
-    if (wasAtTop) {
-      window.scrollTo(0, 1);
-    }
-
+    /* ✦ Scroll guard: Safari fills canvas when scrollY < ~20px (overscroll zone).
+     Nudge to 30px before VT, restore after. ✦ */
+    const OVERSCOLL_THRESHOLD = 30;
+    const wasNearTop = window.scrollY < OVERSCOLL_THRESHOLD;
     const savedScrollY = window.scrollY;
+    if (wasNearTop) {
+      window.scrollTo(0, OVERSCOLL_THRESHOLD);
+    }
 
     const transition = document.startViewTransition(() => {
       updateCardState();
     });
 
     transition.finished.then(() => {
-      if (wasAtTop) {
-        window.scrollTo(0, 0);
+      if (wasNearTop) {
+        window.scrollTo(0, savedScrollY);
       }
     });
   }
