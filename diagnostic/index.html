@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>🔬 Diagnostic — Safari VT Safe-Area Inspector</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: white; }
+  body {
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; min-height: -webkit-fill-available;
+  }
+  .page {
+    padding: 24px; padding-top: max(24px, env(safe-area-inset-top, 0px) + 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+    max-width: 600px; margin: 0 auto; min-height: 250vh;
+    display: flex; flex-direction: column;
+  }
+  .back-link { display: inline-block; font-size: 14px; color: #007aff; text-decoration: none; margin-bottom: 8px; }
+  .variant-label { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .variant-desc { font-size: 14px; color: #555; line-height: 1.5; margin-bottom: 20px; }
+
+  /* Results panel */
+  #results {
+    background: #1a1a2e;
+    color: #00ff88;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11px;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    min-height: 60px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  #results .label { color: #ffcc00; }
+  #results .warn { color: #ff6666; }
+  #results .ok { color: #00ff88; }
+
+  .card {
+    background: #f0f0f0; border-radius: 20px; padding: 24px; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+    view-transition-name: card; contain: layout style; position: relative; z-index: 1;
+  }
+  ::view-transition-old(card), ::view-transition-new(card) { animation-duration: 0.35s; }
+  .card-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #111; }
+  .card-body { font-size: 16px; line-height: 1.65; color: #333; }
+  .card-body p + p { margin-top: 12px; }
+  .card-content { overflow: hidden; transition: max-height 0.35s ease-out; }
+  .card-content.collapsed { max-height: 80px; -webkit-mask-image: linear-gradient(to bottom, black 40px, transparent 70px); mask-image: linear-gradient(to bottom, black 40px, transparent 70px); }
+  .card-content.expanded { max-height: 2000px; -webkit-mask-image: none; mask-image: none; }
+  .tap-hint { margin-top: 12px; font-size: 13px; color: #888; font-style: italic; }
+  .card.expanded-card .tap-hint { display: none; }
+  .placeholder { margin-top: 32px; flex: 1; }
+  .placeholder-section { margin-bottom: 36px; }
+  .placeholder-section h2 { font-size: 18px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .placeholder-section p { font-size: 15px; line-height: 1.5; color: #666; }
+
+  button { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 12px; }
+  button:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../">← Back to index</a>
+  <div class="variant-label">🔬 Diagnostic</div>
+  <div class="variant-desc"><strong>Safe-Area Inspector.</strong> Runs <code>getComputedStyle</code> on <code>::view-transition</code>, probes <code>elementFromPoint</code> at top/bottom safe-area edges during VT, and reports the UA + iOS version. Scroll first, then tap. Results appear in the panel below.</div>
+
+  <button onclick="runPreCheck()">🔍 Run Pre-Check (before VT)</button>
+  <div id="results">[Awaiting tests...]</div>
+
+  <div class="card" id="card">
+    <div class="card-title">Diagnostic Card</div>
+    <div class="card-content collapsed" id="cardContent">
+      <div class="card-body">
+        <p><strong>Instructions:</strong></p>
+        <p>1. Tap <strong>"Run Pre-Check"</strong> to snapshot the baseline state.</p>
+        <p>2. Scroll down a bit, then tap this card to trigger the VT. Diagnostics run automatically during the transition.</p>
+        <p>3. After the transition, scroll back up and tap <strong>"Run Pre-Check"</strong> again to compare post-scroll.</p>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">👆 Scroll first, then tap to run VT diagnostics</div>
+  </div>
+
+  <div class="placeholder">
+    <div class="placeholder-section"><h2>What we're measuring</h2><p><code>getComputedStyle(…, '::view-transition').position</code> — fixed vs absolute tells us if fix #1 is viable.</p></div>
+    <div class="placeholder-section"><h2>Element from point</h2><p><code>elementFromPoint(w/2, 5)</code> (top) and <code>(w/2, h-5)</code> (bottom) during VT — tells us what opaque layer sits in the safe-area bands.</p></div>
+    <div class="placeholder-section"><h2>Background + position</h2><p>For each hit element: <code>getComputedStyle(el).backgroundColor</code> and <code>.position</code>. If a fixed/sticky element with opaque bg is found, that's the tint source.</p></div>
+    <div class="placeholder-section"><h2>UA + iOS version</h2><p><code>navigator.userAgent</code> — behavior differs by build. Also test top vs bottom separately.</p></div>
+  </div>
+</div>
+
+<script>
+  const results = document.getElementById('results');
+  const cardContent = document.getElementById('cardContent');
+  const card = document.getElementById('card');
+  const tapHint = document.getElementById('tapHint');
+  let isExpanded = false;
+
+  function log(label, value, cls) {
+    const line = document.createElement('div');
+    line.innerHTML = `<span class="label">${label}</span> ${value}`;
+    if (cls) line.className = cls;
+    results.appendChild(line);
+    results.scrollTop = results.scrollHeight;
+  }
+
+  function hr() {
+    const line = document.createElement('div');
+    line.textContent = '─'.repeat(40);
+    line.style.color = '#444';
+    results.appendChild(line);
+    results.scrollTop = results.scrollHeight;
+  }
+
+  function runPreCheck() {
+    results.innerHTML = '';
+    hr();
+    log('UA:', navigator.userAgent.substring(0, 120) + '...');
+
+    // Try to probe ::view-transition pseudo element style
+    try {
+      const vtStyle = getComputedStyle(document.documentElement, '::view-transition');
+      log('::view-transition.position:', vtStyle.position || 'null', vtStyle.position === 'fixed' ? 'warn' : 'ok');
+      log('::view-transition.display:', vtStyle.display || 'null');
+      log('::view-transition.background:', vtStyle.background || 'null');
+      log('::view-transition.backgroundColor:', vtStyle.backgroundColor || 'null');
+    } catch(e) {
+      log('::view-transition:', 'ERROR: ' + e.message, 'warn');
+    }
+
+    // Probe top and bottom edge
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    log('Viewport:', `${w}x${h}`);
+
+    const topPt = document.elementFromPoint(w/2, 5);
+    const botPt = document.elementFromPoint(w/2, h - 5);
+
+    if (topPt) {
+      const cs = getComputedStyle(topPt);
+      log('Top edge element:', `<${topPt.tagName}${topPt.id ? '#'+topPt.id : ''}${topPt.className ? '.'+topPt.className.split(' ')[0] : ''}>`, 'ok');
+      log('  position:', cs.position, cs.position === 'fixed' || cs.position === 'sticky' ? 'warn' : 'ok');
+      log('  backgroundColor:', cs.backgroundColor);
+    } else {
+      log('Top edge element:', 'null (no element)', 'warn');
+    }
+
+    if (botPt) {
+      const cs = getComputedStyle(botPt);
+      log('Bottom edge element:', `<${botPt.tagName}${botPt.id ? '#'+botPt.id : ''}${botPt.className ? '.'+botPt.className.split(' ')[0] : ''}>`, 'ok');
+      log('  position:', cs.position, cs.position === 'fixed' || cs.position === 'sticky' ? 'warn' : 'ok');
+      log('  backgroundColor:', cs.backgroundColor);
+    } else {
+      log('Bottom edge element:', 'null (no element)', 'warn');
+    }
+
+    hr();
+    log('✅ Pre-check complete.','Scroll then tap card for VT diagnostics.');
+  }
+
+  function toggleCard() {
+    if (!document.startViewTransition) {
+      updateCardState();
+      return;
+    }
+
+    hr();
+    log('VT TRIGGERED','Starting diagnostics during transition...');
+
+    // Diagnostic during the VT callback
+    const transition = document.startViewTransition(() => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Probe top and bottom during VT
+      const topPtVT = document.elementFromPoint(w/2, 5);
+      const botPtVT = document.elementFromPoint(w/2, h - 5);
+      const midPtVT = document.elementFromPoint(w/2, h/2);
+
+      if (topPtVT) {
+        const cs = getComputedStyle(topPtVT);
+        log('VT TOP element:', `<${topPtVT.tagName}${topPtVT.id ? '#'+topPtVT.id : ''}>`);
+        log('  position:', cs.position, cs.position === 'fixed' || cs.position === 'sticky' ? 'warn' : 'ok');
+        log('  backgroundColor:', cs.backgroundColor);
+        log('  background:', cs.background);
+      } else {
+        log('VT TOP element:', 'null', 'warn');
+      }
+
+      if (botPtVT) {
+        const cs = getComputedStyle(botPtVT);
+        log('VT BOTTOM element:', `<${botPtVT.tagName}${botPtVT.id ? '#'+botPtVT.id : ''}>`);
+        log('  position:', cs.position, cs.position === 'fixed' || cs.position === 'sticky' ? 'warn' : 'ok');
+        log('  backgroundColor:', cs.backgroundColor);
+        log('  background:', cs.background);
+      } else {
+        log('VT BOTTOM element:', 'null', 'warn');
+      }
+
+      if (midPtVT) {
+        const cs = getComputedStyle(midPtVT);
+        log('VT MID element:', `<${midPtVT.tagName}${midPtVT.id ? '#'+midPtVT.id : ''}>`);
+        log('  position:', cs.position);
+        log('  backgroundColor:', cs.backgroundColor);
+      }
+
+      updateCardState();
+    });
+
+    transition.finished.then(() => {
+      // Post-VT check
+      try {
+        const vtStyle = getComputedStyle(document.documentElement, '::view-transition');
+        log('POST-VT ::view-transition.position:', vtStyle.position || 'null');
+      } catch(e) {}
+      hr();
+      log('✅ VT diagnostics complete.', 'Tap Pre-Check again to compare.');
+    });
+  }
+
+  function updateCardState() {
+    isExpanded = !isExpanded;
+    if (isExpanded) { cardContent.classList.remove('collapsed'); cardContent.classList.add('expanded'); card.classList.add('expanded-card'); tapHint.textContent = '👆 Tap to run VT diagnostics again'; }
+    else { cardContent.classList.add('collapsed'); cardContent.classList.remove('expanded'); card.classList.remove('expanded-card'); tapHint.textContent = '👆 Scroll first, then tap to run VT diagnostics'; }
+  }
+  document.addEventListener('click', (e) => { if (e.target.tagName !== 'BUTTON') toggleCard(); });
+</script>
+</body>
+</html>

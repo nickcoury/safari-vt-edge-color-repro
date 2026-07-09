@@ -404,6 +404,49 @@ t.finished.then(() => {
 }</div>
   </a>
 
+  <a class="variant-link" href="./diagnostic/" style="background:#1a1a2e; color:#00ff88;">
+    <div class="num">🔬 Diagnostic</div>
+    <div class="name">Safe-Area Inspector — getComputedStyle + elementFromPoint</div>
+    <div class="desc">Runs <code>getComputedStyle(documentElement, '::view-transition').position</code>, probes <code>elementFromPoint</code> at top/bottom edges during VT, reports UA + iOS version. Tells you exactly what opaque layer sits in the safe-area bands.</div>
+    <div class="css-snippet">// Pre-check: ::view-transition position
+// VT callback: elementFromPoint(w/2, 5) top
+//              elementFromPoint(w/2, h-5) bottom
+// Post-VT: restore check</div>
+  </a>
+
+  <a class="variant-link" href="./root-vt-absolute/">
+    <div class="num">Variant 30</div>
+    <div class="name">:root::view-transition { position: absolute }</div>
+    <div class="desc">Claude's selector fix: uses <code>:root::view-transition</code> instead of bare <code>::view-transition</code>. The <code>:root</code> prefix matches UA specificity. Pulls overlay off fixed sampling path.</div>
+    <div class="css-snippet">:root::view-transition {
+  position: absolute !important;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./toggle-fixed-during-vt/">
+    <div class="num">Variant 31</div>
+    <div class="name">Toggle Fixed/Sticky → Absolute During VT</div>
+    <div class="desc">Before VT callback, finds all <code>position: fixed</code> / <code>sticky</code> elements in DOM, converts to <code>absolute</code>. Restored in <code>.finished.finally()</code>. Neutralizes any fixed element contributing to tint.</div>
+    <div class="css-snippet">// Before startViewTransition:
+document.querySelectorAll('*').forEach(el => {
+  if (getComputedStyle(el).position === 'fixed')
+    el.style.position = 'absolute';
+});
+// .finished.finally(): restore</div>
+  </a>
+
+  <a class="variant-link" href="./group-pair-transparent/">
+    <div class="num">Variant 32</div>
+    <div class="name">Group + Image-Pair Both Transparent</div>
+    <div class="desc">Sets <code>background: transparent !important</code> on <code>::view-transition-group(root)</code>, <code>::view-transition-image-pair(root)</code>, AND old/new. Previously tested pieces but not this exact combo.</div>
+    <div class="css-snippet">::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  background: transparent !important;
+}</div>
+  </a>
+
 </div>
 
 <div class="note">
