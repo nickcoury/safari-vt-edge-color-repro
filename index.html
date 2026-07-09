@@ -229,6 +229,50 @@
 }</div>
   </a>
 
+  <a class="variant-link" href="./struct-transparent-html-body/">
+    <div class="num">Variant 15</div>
+    <div class="name">Structural: Transparent HTML/Body</div>
+    <div class="desc"><code>html</code> and <code>body</code> have <code>background: transparent</code> always. White lives only on the <code>.page</code> wrapper. Safe areas outside the wrapper are genuinely transparent — not white.</div>
+    <div class="css-snippet">html, body { background: transparent; }
+.page { background: white; }</div>
+  </a>
+
+  <a class="variant-link" href="./js-transparent-during-vt/">
+    <div class="num">Variant 16</div>
+    <div class="name">JS: Transparent During VT Callback</div>
+    <div class="desc">Inside <code>startViewTransition()</code> callback, set html/body to transparent via JS. The new-state snapshot captures them as transparent. Restored after transition finishes.</div>
+    <div class="css-snippet">// In startViewTransition callback:
+document.documentElement.style.background = 'transparent';
+document.body.style.background = 'transparent';
+// After transition.finished: restore</div>
+  </a>
+
+  <a class="variant-link" href="./struct-transparent-plus-overlay/">
+    <div class="num">Variant 17</div>
+    <div class="name">Combo: Structural Transparent + VT Overlay Transparent</div>
+    <div class="desc">Combines variant 15 (structural transparent html/body) with variant 12 (transparent bg on all VT pseudo-elements). Double-layered CSS-only approach.</div>
+    <div class="css-snippet">html, body { background: transparent; }
+.page { background: white; }
+::view-transition,
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  background: transparent;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./js-transparent-aggressive/">
+    <div class="num">Variant 18</div>
+    <div class="name">JS: Aggressive Transparent (html + body + .page)</div>
+    <div class="desc">Inside VT callback, set <code>html</code>, <code>body</code>, AND <code>.page</code> all to transparent. The entire viewport has no opaque white at snapshot time. Maximum transparency.</div>
+    <div class="css-snippet">// In startViewTransition callback:
+document.documentElement.style.background = 'transparent';
+document.body.style.background = 'transparent';
+pageEl.style.background = 'transparent';
+// After transition.finished: restore all</div>
+  </a>
+
 </div>
 
 <div class="note">
