@@ -330,6 +330,30 @@ body         → 🟠 ORANGE (#FF9100)
     <div class="css-snippet">body { background: Canvas; }</div>
   </a>
 
+  <a class="variant-link" href="./html-red-body-transparent/">
+    <div class="num">Variant 24</div>
+    <div class="name">HTML = RED / Body = TRANSPARENT</div>
+    <div class="desc">Tests whether Safari resolves <code>transparent</code> body through the stacking context to html's RED, or hardcodes transparent→white. If safe areas flash RED, the computed background is used. If WHITE, transparent is special-cased.</div>
+    <div class="css-snippet">html { background: #FF1744; } /* RED */
+body { background: transparent; }
+/* RED flash = resolved through stacking
+   WHITE flash = transparent hardcoded to white */</div>
+  </a>
+
+  <a class="variant-link" href="./pre-vt-transparent-body/">
+    <div class="num">Variant 25</div>
+    <div class="name">Pre-VT Transparent Body</div>
+    <div class="desc">Sets body transparent BEFORE <code>startViewTransition()</code> (not in callback). OLD snapshot also captures transparent body. Unlike V16 which only affected the NEW snapshot. Restored after transition.</div>
+    <div class="css-snippet">// BEFORE startViewTransition:
+document.body.style.background = 'transparent';
+const t = document.startViewTransition(() => {
+  updateCardState(); // body still transparent
+});
+t.finished.then(() => {
+  document.body.style.background = 'white';
+});</div>
+  </a>
+
 </div>
 
 <div class="note">
