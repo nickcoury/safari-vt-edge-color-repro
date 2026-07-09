@@ -354,6 +354,42 @@ t.finished.then(() => {
 });</div>
   </a>
 
+  <a class="variant-link" href="./root-vt-name-none/">
+    <div class="num">Variant 26</div>
+    <div class="name">Root view-transition-name: none</div>
+    <div class="desc">Overrides the UA stylesheet's <code>:root { view-transition-name: root; }</code> with <code>none !important</code>. Tests whether the root can be excluded as a named VT element, preventing its snapshot from participating.</div>
+    <div class="css-snippet">:root, html {
+  view-transition-name: none !important;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./vt-overlay-not-fixed/">
+    <div class="num">Variant 27</div>
+    <div class="name">::view-transition NOT fixed</div>
+    <div class="desc">Overrides <code>position: fixed</code> on the top-level <code>::view-transition</code> overlay. Sets <code>position: relative</code> + safe-area margins to pull it away from edges. WILL break visuals — tests if safe areas stop flashing when the overlay doesn't cover them.</div>
+    <div class="css-snippet">::view-transition {
+  position: relative !important;
+  margin-top: env(safe-area-inset-top) !important;
+  margin-bottom: env(safe-area-inset-bottom) !important;
+  overflow: hidden !important;
+}</div>
+  </a>
+
+  <a class="variant-link" href="./vt-group-not-fixed/">
+    <div class="num">Variant 28</div>
+    <div class="name">::view-transition-group(root) NOT fixed</div>
+    <div class="desc">Only the root GROUP is repositioned (<code>position: absolute</code> + inset <code>top</code>/<code>height</code> calc) away from safe areas. Overlay left alone. Isolates whether the group specifically fills safe areas.</div>
+    <div class="css-snippet">::view-transition-group(root) {
+  position: absolute !important;
+  top: env(safe-area-inset-top) !important;
+  width: 100vw !important;
+  height: calc(100vh
+    - env(safe-area-inset-top)
+    - env(safe-area-inset-bottom)) !important;
+  overflow: hidden !important;
+}</div>
+  </a>
+
 </div>
 
 <div class="note">
