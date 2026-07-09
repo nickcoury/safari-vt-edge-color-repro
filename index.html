@@ -468,6 +468,20 @@ document.querySelectorAll('*').forEach(el => {
 // JS: just toggle class, no startViewTransition</div>
   </a>
 
+  <a class="variant-link" href="./no-root-vt-scroll-fix/" style="background:#e8ffe8;">
+    <div class="num">Variant 35 ✅</div>
+    <div class="name">No Root VT + Scroll Guard (fixes top-of-page)</div>
+    <div class="desc">Same root exclusion as V33 + 1px scroll nudge when at <code>scrollY=0</code>. V26/V33 work except at page top — this eliminates that edge case by nudging 1px before VT and restoring after. Imperceptible, reliable.</div>
+    <div class="css-snippet">/* Same as V33: root excluded from VT */
+:root, html, body, .page {
+  view-transition-name: none !important;
+}
+// + JS scroll guard:
+if (scrollY === 0) scrollTo(0, 1);
+// ... VT runs ...
+// if (wasAtTop) scrollTo(0, 0);</div>
+  </a>
+
 </div>
 
 <div class="note">
