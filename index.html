@@ -482,6 +482,40 @@ if (scrollY === 0) scrollTo(0, 1);
 // if (wasAtTop) scrollTo(0, 0);</div>
   </a>
 
+  <a class="variant-link" href="./nudge-finally/">
+    <div class="num">Variant 36</div>
+    <div class="name">Nudge 24px + .finally()</div>
+    <div class="desc">Root exclusion + 24px nudge (user's observed threshold) + <code>.finally()</code> for robust scroll restoration even if VT is skipped/interrupted. Refined version of V35.</div>
+    <div class="css-snippet">const T = 24;
+if (scrollY < T) scrollTo(0, T);
+const t = document.startViewTransition(mutate);
+t.finished.finally(() => scrollTo(0, 0));</div>
+  </a>
+
+  <a class="variant-link" href="./transparent-fixed-strips/">
+    <div class="num">Variant 37</div>
+    <div class="name">Transparent Fixed Strips (sampler anchor)</div>
+    <div class="desc">Two always-present <code>position:fixed</code> transparent strips at top:0 and bottom:0. Gives Safari's sampler a <code>background:transparent</code> fixed element in the safe-area bands so it doesn't fall back to canvas white.</div>
+    <div class="css-snippet">.safe-strip-top, .safe-strip-bottom {
+  position: fixed; width: 100%;
+  background: transparent;
+  z-index: 9999; pointer-events: none;
+  height: max(env(safe-area-inset), 6px);
+}</div>
+  </a>
+
+  <a class="variant-link" href="./overscroll-none/">
+    <div class="num">Variant 38</div>
+    <div class="name">overscroll-behavior: none</div>
+    <div class="desc">Sets <code>overscroll-behavior: none</code> on html/body to disable rubber-band scrolling. If the canvas fill is triggered by elastic overscroll at top, disabling it prevents the fill. No scroll guard needed.</div>
+    <div class="css-snippet">html, body {
+  overscroll-behavior: none;
+}
+:root, html, body, .page {
+  view-transition-name: none !important;
+}</div>
+  </a>
+
 </div>
 
 <div class="note">
