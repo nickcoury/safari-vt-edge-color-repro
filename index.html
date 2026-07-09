@@ -390,6 +390,20 @@ t.finished.then(() => {
 }</div>
   </a>
 
+  <a class="variant-link" href="./vt-overlay-bottom-half/">
+    <div class="num">Variant 29</div>
+    <div class="name">VT Overlay: Bottom Half Only (visible bounds)</div>
+    <div class="desc">Overlay positioned at <strong>bottom 50vh, 70% width</strong>. Does NOT cover Dynamic Island (top) or side edges. Magenta dashed outline shows exact bounds. Tests whether safe areas only flash where the overlay actually covers.</div>
+    <div class="css-snippet">::view-transition {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 15% !important;
+  width: 70% !important;
+  height: 50vh !important;
+  outline: 4px dashed magenta;
+}</div>
+  </a>
+
 </div>
 
 <div class="note">
